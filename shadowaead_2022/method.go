@@ -15,8 +15,8 @@ import (
 	"strings"
 	"time"
 
-	C "github.com/sagernet/sing-shadowsocks2/cipher"
-	"github.com/sagernet/sing-shadowsocks2/internal/shadowio"
+	C "github.com/metacubex/sing-shadowsocks2/cipher"
+	"github.com/metacubex/sing-shadowsocks2/internal/shadowio"
 	"github.com/sagernet/sing/common"
 	"github.com/sagernet/sing/common/buf"
 	"github.com/sagernet/sing/common/bufio"
