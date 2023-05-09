@@ -233,9 +233,7 @@ type clientPacketConn struct {
 }
 
 func (c *clientPacketConn) ReadPacket(buffer *buf.Buffer) (destination M.Socksaddr, err error) {
-	println("read")
 	err = c.reader.ReadBuffer(buffer)
-	println("read done")
 	if err != nil {
 		return
 	}
