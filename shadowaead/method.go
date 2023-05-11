@@ -146,12 +146,19 @@ func (m *Method) DialEarlyConn(conn net.Conn, destination M.Socksaddr) net.Conn 
 }
 
 func (m *Method) DialPacketConn(conn net.Conn) N.NetPacketConn {
-	return &clientPacketConn{
+	pc := &clientPacketConn{
 		AbstractConn: conn,
 		reader:       bufio.NewExtendedReader(conn),
 		writer:       bufio.NewExtendedWriter(conn),
 		method:       m,
 	}
+	if waitRead, isWaitRead := conn.(shadowio.WaitRead); isWaitRead {
+		return &clientWaitPacketConn{
+			clientPacketConn: pc,
+			waitRead:         waitRead,
+		}
+	}
+	return pc
 }
 
 type clientConn struct {
@@ -322,12 +329,8 @@ func (c *clientPacketConn) WritePacket(buffer *buf.Buffer, destination M.Socksad
 	return c.writer.WriteBuffer(buffer)
 }
 
-func (c *clientPacketConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
-	n, err = c.reader.Read(p)
-	if err != nil {
-		return
-	}
-	if n < c.method.keySaltLength {
+func (c *clientPacketConn) readFrom(p []byte) (data []byte, addr net.Addr, err error) {
+	if len(p) < c.method.keySaltLength {
 		err = C.ErrPacketTooShort
 		return
 	}
@@ -338,7 +341,7 @@ func (c *clientPacketConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) 
 	if err != nil {
 		return
 	}
-	packet, err := readCipher.Open(p[c.method.keySaltLength:c.method.keySaltLength], rw.ZeroBytes[:readCipher.NonceSize()], p[c.method.keySaltLength:n], nil)
+	packet, err := readCipher.Open(p[c.method.keySaltLength:c.method.keySaltLength], rw.ZeroBytes[:readCipher.NonceSize()], p[c.method.keySaltLength:], nil)
 	if err != nil {
 		return
 	}
@@ -352,7 +355,18 @@ func (c *clientPacketConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) 
 	} else {
 		addr = destination
 	}
-	n = copy(p, packetContent.Bytes())
+	data = packetContent.Bytes()
+	return
+}
+
+func (c *clientPacketConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
+	n, err = c.reader.Read(p)
+	if err != nil {
+		return
+	}
+	var data []byte
+	data, addr, err = c.readFrom(p[:n])
+	n = copy(p, data)
 	return
 }
 
@@ -389,4 +403,24 @@ func (c *clientPacketConn) RearHeadroom() int {
 
 func (c *clientPacketConn) Upstream() any {
 	return c.AbstractConn
+}
+
+type clientWaitPacketConn struct {
+	*clientPacketConn
+	waitRead shadowio.WaitRead
+}
+
+func (c *clientWaitPacketConn) WaitReadFrom() (data []byte, put func(), addr net.Addr, err error) {
+	data, put, err = c.waitRead.WaitRead()
+	if err != nil {
+		return
+	}
+	data, addr, err = c.readFrom(data)
+	if err != nil {
+		put()
+		put = nil
+		data = nil
+		return
+	}
+	return
 }

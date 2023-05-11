@@ -11,6 +11,7 @@ import (
 
 	C "github.com/metacubex/sing-shadowsocks2/cipher"
 	"github.com/metacubex/sing-shadowsocks2/internal/legacykey"
+	"github.com/metacubex/sing-shadowsocks2/internal/shadowio"
 	"github.com/sagernet/sing/common"
 	"github.com/sagernet/sing/common/buf"
 	"github.com/sagernet/sing/common/bufio"
@@ -165,10 +166,17 @@ func (m *Method) DialEarlyConn(conn net.Conn, destination M.Socksaddr) net.Conn 
 }
 
 func (m *Method) DialPacketConn(conn net.Conn) N.NetPacketConn {
-	return &clientPacketConn{
+	pc := &clientPacketConn{
 		ExtendedConn: bufio.NewExtendedConn(conn),
 		method:       m,
 	}
+	if waitRead, isWaitRead := conn.(shadowio.WaitRead); isWaitRead {
+		return &clientWaitPacketConn{
+			clientPacketConn: pc,
+			waitRead:         waitRead,
+		}
+	}
+	return pc
 }
 
 type clientConn struct {
@@ -304,16 +312,12 @@ func (c *clientPacketConn) WritePacket(buffer *buf.Buffer, destination M.Socksad
 	return c.ExtendedConn.WriteBuffer(buffer)
 }
 
-func (c *clientPacketConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
-	n, err = c.ExtendedConn.Read(p)
-	if err != nil {
-		return
-	}
+func (c *clientPacketConn) readFrom(p []byte) (data []byte, addr net.Addr, err error) {
 	stream, err := c.method.decryptConstructor(c.method.key, p[:c.method.saltLength])
 	if err != nil {
 		return
 	}
-	buffer := buf.As(p[c.method.saltLength:n])
+	buffer := buf.As(p[c.method.saltLength:])
 	stream.XORKeyStream(buffer.Bytes(), buffer.Bytes())
 	destination, err := M.SocksaddrSerializer.ReadAddrPort(buffer)
 	if err != nil {
@@ -324,7 +328,18 @@ func (c *clientPacketConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) 
 	} else {
 		addr = destination.UDPAddr()
 	}
-	n = copy(p, buffer.Bytes())
+	data = buffer.Bytes()
+	return
+}
+
+func (c *clientPacketConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
+	n, err = c.ExtendedConn.Read(p)
+	if err != nil {
+		return
+	}
+	var data []byte
+	data, addr, err = c.readFrom(p[:n])
+	n = copy(p, data)
 	return
 }
 
@@ -353,4 +368,24 @@ func (c *clientPacketConn) FrontHeadroom() int {
 
 func (c *clientPacketConn) Upstream() any {
 	return c.ExtendedConn
+}
+
+type clientWaitPacketConn struct {
+	*clientPacketConn
+	waitRead shadowio.WaitRead
+}
+
+func (c *clientWaitPacketConn) WaitReadFrom() (data []byte, put func(), addr net.Addr, err error) {
+	data, put, err = c.waitRead.WaitRead()
+	if err != nil {
+		return
+	}
+	data, addr, err = c.readFrom(data)
+	if err != nil {
+		put()
+		put = nil
+		data = nil
+		return
+	}
+	return
 }

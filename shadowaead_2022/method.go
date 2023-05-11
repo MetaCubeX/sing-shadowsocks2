@@ -144,13 +144,20 @@ func (m *Method) DialEarlyConn(conn net.Conn, destination M.Socksaddr) net.Conn 
 }
 
 func (m *Method) DialPacketConn(conn net.Conn) N.NetPacketConn {
-	return &clientPacketConn{
+	pc := &clientPacketConn{
 		AbstractConn: conn,
 		reader:       bufio.NewExtendedReader(conn),
 		writer:       bufio.NewExtendedWriter(conn),
 		method:       m,
 		session:      m.newUDPSession(),
 	}
+	if waitRead, isWaitRead := conn.(shadowio.WaitRead); isWaitRead {
+		return &clientWaitPacketConn{
+			clientPacketConn: pc,
+			waitRead:         waitRead,
+		}
+	}
+	return pc
 }
 
 func (m *Method) time() time.Time {
@@ -751,4 +758,32 @@ func (c *clientPacketConn) Upstream() any {
 
 func (c *clientPacketConn) Close() error {
 	return c.AbstractConn.Close()
+}
+
+type clientWaitPacketConn struct {
+	*clientPacketConn
+	waitRead shadowio.WaitRead
+}
+
+func (c *clientWaitPacketConn) WaitReadFrom() (data []byte, put func(), addr net.Addr, err error) {
+	data, put, err = c.waitRead.WaitRead()
+	if err != nil {
+		return
+	}
+	buffer := buf.As(data)
+	var destination M.Socksaddr
+	destination, err = c.readPacket(buffer)
+	if err != nil {
+		put()
+		put = nil
+		data = nil
+		return
+	}
+	if destination.IsFqdn() {
+		addr = destination
+	} else {
+		addr = destination.UDPAddr()
+	}
+	data = buffer.Bytes()
+	return
 }
