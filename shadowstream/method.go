@@ -315,6 +315,10 @@ func (c *clientPacketConn) WritePacket(buffer *buf.Buffer, destination M.Socksad
 }
 
 func (c *clientPacketConn) readFrom(p []byte) (data []byte, addr net.Addr, err error) {
+	if len(p) < c.method.saltLength {
+		err = C.ErrPacketTooShort
+		return
+	}
 	stream, err := c.method.decryptConstructor(c.method.key, p[:c.method.saltLength])
 	if err != nil {
 		return
@@ -380,6 +384,10 @@ type clientWaitPacketConn struct {
 func (c *clientWaitPacketConn) WaitReadFrom() (data []byte, put func(), addr net.Addr, err error) {
 	data, put, err = c.waitRead.WaitRead()
 	if err != nil {
+		return
+	}
+	if len(data) <= 0 {
+		err = C.ErrPacketTooShort
 		return
 	}
 	data, addr, err = c.readFrom(data)

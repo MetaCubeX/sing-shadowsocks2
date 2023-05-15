@@ -415,6 +415,10 @@ func (c *clientWaitPacketConn) WaitReadFrom() (data []byte, put func(), addr net
 	if err != nil {
 		return
 	}
+	if len(data) <= 0 {
+		err = C.ErrPacketTooShort
+		return
+	}
 	data, addr, err = c.readFrom(data)
 	if err != nil {
 		put()

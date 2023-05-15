@@ -770,6 +770,10 @@ func (c *clientWaitPacketConn) WaitReadFrom() (data []byte, put func(), addr net
 	if err != nil {
 		return
 	}
+	if len(data) <= 0 {
+		err = C.ErrPacketTooShort
+		return
+	}
 	buffer := buf.As(data)
 	var destination M.Socksaddr
 	destination, err = c.readPacket(buffer)
