@@ -394,7 +394,9 @@ func (c *clientWaitPacketConn) WaitReadFrom() (data []byte, put func(), addr net
 	}
 	data, addr, err = c.readFrom(data)
 	if err != nil {
-		put()
+		if put != nil {
+			put()
+		}
 		put = nil
 		data = nil
 		return

@@ -780,7 +780,9 @@ func (c *clientWaitPacketConn) WaitReadFrom() (data []byte, put func(), addr net
 	var destination M.Socksaddr
 	destination, err = c.readPacket(buffer)
 	if err != nil {
-		put()
+		if put != nil {
+			put()
+		}
 		put = nil
 		data = nil
 		return
