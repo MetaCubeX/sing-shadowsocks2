@@ -81,18 +81,15 @@ func (r *Reader) Read(p []byte) (n int, err error) {
 
 func (r *Reader) ReadBuffer(buffer *buf.Buffer) error {
 	var err error
-	var n int
 	for {
 		if r.cache != nil {
 			if r.cache.IsEmpty() {
 				r.cache.Release()
 				r.cache = nil
 			} else {
-				n, err = buffer.Write(r.cache.Bytes())
-				if err != nil {
-					return err
-				}
+				n := copy(buffer.FreeBytes(), r.cache.Bytes())
 				if n > 0 {
+					buffer.Truncate(n)
 					r.cache.Advance(n)
 					return nil
 				}
