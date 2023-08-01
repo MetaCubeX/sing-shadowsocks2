@@ -397,11 +397,10 @@ func (m *Method) newUDPSession() *udpSession {
 		binary.BigEndian.PutUint64(sessionId, session.sessionId)
 		key := SessionKey(m.pskList[len(m.pskList)-1], sessionId, m.keySaltLength)
 		var err error
-		session.cipher, err = m.constructor(common.Dup(key))
+		session.cipher, err = m.constructor(key)
 		if err != nil {
 			return nil
 		}
-		common.KeepAlive(key)
 	}
 	return session
 }
@@ -545,11 +544,10 @@ func (c *clientPacketConn) readPacket(buffer *buf.Buffer) (destination M.Socksad
 			remoteCipher = c.session.lastRemoteCipher
 		} else {
 			key := SessionKey(c.method.pskList[len(c.method.pskList)-1], packetHeader[:8], c.method.keySaltLength)
-			remoteCipher, err = c.method.constructor(common.Dup(key))
+			remoteCipher, err = c.method.constructor(key)
 			if err != nil {
 				return M.Socksaddr{}, err
 			}
-			common.KeepAlive(key)
 		}
 		_, err = remoteCipher.Open(buffer.Index(0), packetHeader[4:16], buffer.Bytes(), nil)
 		if err != nil {
@@ -618,7 +616,10 @@ func (c *clientPacketConn) readPacket(buffer *buf.Buffer) (destination M.Socksad
 	buffer.Advance(int(paddingLen))
 
 	destination, err = M.SocksaddrSerializer.ReadAddrPort(buffer)
-	return
+	if err != nil {
+		return
+	}
+	return destination.Unwrap(), nil
 }
 
 func (c *clientPacketConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
