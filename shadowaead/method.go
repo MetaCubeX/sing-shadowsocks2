@@ -152,7 +152,7 @@ func (m *Method) DialPacketConn(conn net.Conn) N.NetPacketConn {
 		writer:       bufio.NewExtendedWriter(conn),
 		method:       m,
 	}
-	if waitRead, isWaitRead := N.CastReader[shadowio.WaitReadReader](conn); isWaitRead {
+	if waitRead, isWaitRead := conn.(shadowio.WaitRead); isWaitRead {
 		return &clientWaitPacketConn{
 			clientPacketConn: pc,
 			waitRead:         waitRead,
@@ -414,8 +414,6 @@ func (c *clientPacketConn) RearHeadroom() int {
 func (c *clientPacketConn) Upstream() any {
 	return c.AbstractConn
 }
-
-var _ shadowio.WaitReadFrom = (*clientWaitPacketConn)(nil)
 
 type clientWaitPacketConn struct {
 	*clientPacketConn

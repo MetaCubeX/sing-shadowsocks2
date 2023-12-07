@@ -151,7 +151,7 @@ func (m *Method) DialPacketConn(conn net.Conn) N.NetPacketConn {
 		method:       m,
 		session:      m.newUDPSession(),
 	}
-	if waitRead, isWaitRead := N.CastReader[shadowio.WaitReadReader](conn); isWaitRead {
+	if waitRead, isWaitRead := conn.(shadowio.WaitRead); isWaitRead {
 		return &clientWaitPacketConn{
 			clientPacketConn: pc,
 			waitRead:         waitRead,
@@ -763,8 +763,6 @@ func (c *clientPacketConn) Upstream() any {
 func (c *clientPacketConn) Close() error {
 	return c.AbstractConn.Close()
 }
-
-var _ shadowio.WaitReadFrom = (*clientWaitPacketConn)(nil)
 
 type clientWaitPacketConn struct {
 	*clientPacketConn
