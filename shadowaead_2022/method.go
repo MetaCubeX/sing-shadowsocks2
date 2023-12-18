@@ -79,7 +79,7 @@ func NewMethod(ctx context.Context, methodName string, options C.MethodOptions) 
 		m.constructor = aeadCipher(aes.NewCipher, cipher.NewGCM)
 		m.blockConstructor = aes.NewCipher
 	case "2022-blake3-chacha20-poly1305":
-		if len(options.KeyList) > 1 {
+		if len(m.pskList) > 1 {
 			return nil, ErrNoEIH
 		}
 		m.keySaltLength = 32
@@ -163,11 +163,12 @@ func (m *Method) time() time.Time {
 
 type clientConn struct {
 	net.Conn
-	method      *Method
-	destination M.Socksaddr
-	requestSalt []byte
-	reader      *shadowio.Reader
-	writer      *shadowio.Writer
+	method          *Method
+	destination     M.Socksaddr
+	requestSalt     []byte
+	reader          *shadowio.Reader
+	readWaitOptions N.ReadWaitOptions
+	writer          *shadowio.Writer
 	shadowio.WriterInterface
 }
 
@@ -302,6 +303,7 @@ func (c *clientConn) readResponse() error {
 	if err != nil {
 		return err
 	}
+	reader.InitializeReadWaiter(c.readWaitOptions)
 	c.reader = reader
 	return nil
 }
@@ -323,17 +325,6 @@ func (c *clientConn) ReadBuffer(buffer *buf.Buffer) error {
 		}
 	}
 	return c.reader.ReadBuffer(buffer)
-}
-
-func (c *clientConn) ReadBufferThreadSafe() (buffer *buf.Buffer, err error) {
-	if c.reader == nil {
-		err = c.readResponse()
-		if err != nil {
-			return
-		}
-
-	}
-	return c.reader.ReadBufferThreadSafe()
 }
 
 func (c *clientConn) Write(p []byte) (n int, err error) {
