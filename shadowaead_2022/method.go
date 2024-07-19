@@ -25,6 +25,8 @@ import (
 	N "github.com/sagernet/sing/common/network"
 	"github.com/sagernet/sing/common/ntp"
 
+	"github.com/metacubex/chacha"
+	"gitlab.com/go-extension/aes-ccm"
 	"golang.org/x/crypto/chacha20poly1305"
 	"lukechampine.com/blake3"
 )
@@ -33,6 +35,10 @@ var MethodList = []string{
 	"2022-blake3-aes-128-gcm",
 	"2022-blake3-aes-256-gcm",
 	"2022-blake3-chacha20-poly1305",
+	// began not standard methods
+	"2022-blake3-chacha8-poly1305",
+	"2022-blake3-aes-128-ccm",
+	"2022-blake3-aes-256-ccm",
 }
 
 func init() {
@@ -84,6 +90,21 @@ func NewMethod(ctx context.Context, methodName string, options C.MethodOptions) 
 		}
 		m.keySaltLength = 32
 		m.constructor = chacha20poly1305.New
+		m.blockConstructor = aes.NewCipher
+	case "2022-blake3-chacha8-poly1305":
+		if len(m.pskList) > 1 {
+			return nil, ErrNoEIH
+		}
+		m.keySaltLength = 32
+		m.constructor = chacha.NewChaCha20IETFPoly1305
+	case "2022-blake3-aes-128-ccm":
+		m.keySaltLength = 16
+		m.constructor = aeadCipher(aes.NewCipher, func(cipher cipher.Block) (cipher.AEAD, error) { return ccm.NewCCM(cipher) })
+		m.blockConstructor = aes.NewCipher
+	case "2022-blake3-aes-256-ccm":
+		m.keySaltLength = 32
+		m.constructor = aeadCipher(aes.NewCipher, func(cipher cipher.Block) (cipher.AEAD, error) { return ccm.NewCCM(cipher) })
+		m.blockConstructor = aes.NewCipher
 	default:
 		return nil, os.ErrInvalid
 	}
@@ -108,7 +129,7 @@ func NewMethod(ctx context.Context, methodName string, options C.MethodOptions) 
 	}
 	var err error
 	switch methodName {
-	case "2022-blake3-aes-128-gcm", "2022-blake3-aes-256-gcm":
+	case "2022-blake3-aes-128-gcm", "2022-blake3-aes-256-gcm", "2022-blake3-aes-128-ccm", "2022-blake3-aes-256-ccm":
 		m.udpBlockEncryptCipher, err = aes.NewCipher(m.pskList[0])
 		if err != nil {
 			return nil, err
@@ -119,6 +140,11 @@ func NewMethod(ctx context.Context, methodName string, options C.MethodOptions) 
 		}
 	case "2022-blake3-chacha20-poly1305":
 		m.udpCipher, err = chacha20poly1305.NewX(m.pskList[0])
+		if err != nil {
+			return nil, err
+		}
+	case "2022-blake3-chacha8-poly1305":
+		m.udpCipher, err = chacha.NewXChaCha8IETFPoly1305(m.pskList[0])
 		if err != nil {
 			return nil, err
 		}
