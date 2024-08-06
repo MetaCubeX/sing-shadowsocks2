@@ -39,6 +39,21 @@ func init() {
 	C.RegisterMethod(MethodList, NewMethod)
 }
 
+type EncryptConstructor func(key []byte, salt []byte) (cipher.Stream, error)
+type DecryptConstructor func(key []byte, salt []byte) (cipher.Stream, error)
+
+func wrapNewChaCha20(fn func(nonce, key []byte) (cipher.Stream, error)) EncryptConstructor {
+	return func(key, salt []byte) (cipher.Stream, error) {
+		return fn(salt, key)
+	}
+}
+
+func wrapNewChaCha20Decrypt(fn func(nonce, key []byte) (cipher.Stream, error)) DecryptConstructor {
+	return func(key, salt []byte) (cipher.Stream, error) {
+		return fn(salt, key)
+	}
+}
+
 type Method struct {
 	keyLength          int
 	saltLength         int
@@ -116,8 +131,8 @@ func NewMethod(ctx context.Context, methodName string, options C.MethodOptions) 
 	case "chacha20":
 		m.keyLength = chacha.KeySize
 		m.saltLength = chacha.NonceSize
-		m.encryptConstructor = chacha.NewChaCha20
-		m.decryptConstructor = chacha.NewChaCha20
+		m.encryptConstructor = wrapNewChaCha20(chacha.NewChaCha20)
+		m.decryptConstructor = wrapNewChaCha20Decrypt(chacha.NewChaCha20)
 	default:
 		return nil, os.ErrInvalid
 	}
