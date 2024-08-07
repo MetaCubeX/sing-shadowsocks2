@@ -116,8 +116,12 @@ func NewMethod(ctx context.Context, methodName string, options C.MethodOptions) 
 	case "chacha20":
 		m.keyLength = chacha.KeySize
 		m.saltLength = chacha.NonceSize
-		m.encryptConstructor = chacha.NewChaCha20
-		m.decryptConstructor = chacha.NewChaCha20
+		m.encryptConstructor = func(key []byte, salt []byte) (cipher.Stream, error) {
+			return chacha.NewChaCha20(salt, key)
+		}
+		m.decryptConstructor = func(key []byte, salt []byte) (cipher.Stream, error) {
+			return chacha.NewChaCha20(salt, key)
+		}
 	default:
 		return nil, os.ErrInvalid
 	}
