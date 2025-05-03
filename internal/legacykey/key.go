@@ -5,7 +5,7 @@ import (
 	"crypto/sha1"
 	"io"
 
-	"github.com/sagernet/sing/common"
+	"github.com/metacubex/sing/common"
 
 	"golang.org/x/crypto/hkdf"
 )

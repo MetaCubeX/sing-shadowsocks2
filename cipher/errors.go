@@ -1,6 +1,6 @@
 package cipher
 
-import E "github.com/sagernet/sing/common/exceptions"
+import E "github.com/metacubex/sing/common/exceptions"
 
 var (
 	ErrMissingPassword = E.New("missing password")

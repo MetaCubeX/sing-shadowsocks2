@@ -3,7 +3,7 @@ package cipher
 import (
 	"context"
 
-	E "github.com/sagernet/sing/common/exceptions"
+	E "github.com/metacubex/sing/common/exceptions"
 )
 
 var methodRegistry map[string]MethodCreator

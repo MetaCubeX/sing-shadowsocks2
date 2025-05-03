@@ -6,9 +6,9 @@ import (
 	"io"
 	"sync/atomic"
 
-	"github.com/sagernet/sing/common"
-	E "github.com/sagernet/sing/common/exceptions"
-	"github.com/sagernet/sing/common/random"
+	"github.com/metacubex/sing/common"
+	E "github.com/metacubex/sing/common/exceptions"
+	"github.com/metacubex/sing/common/random"
 
 	"lukechampine.com/blake3"
 )
