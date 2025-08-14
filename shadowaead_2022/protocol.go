@@ -10,7 +10,7 @@ import (
 	E "github.com/metacubex/sing/common/exceptions"
 	"github.com/metacubex/sing/common/random"
 
-	"lukechampine.com/blake3"
+	"github.com/metacubex/blake3"
 )
 
 const (

@@ -25,10 +25,10 @@ import (
 	N "github.com/metacubex/sing/common/network"
 	"github.com/metacubex/sing/common/ntp"
 
+	"github.com/metacubex/blake3"
 	"github.com/metacubex/chacha"
 	"gitlab.com/go-extension/aes-ccm"
 	"golang.org/x/crypto/chacha20poly1305"
-	"lukechampine.com/blake3"
 )
 
 var MethodList = []string{

@@ -21,6 +21,7 @@ import (
 	"github.com/Yawning/aez"
 	"github.com/ericlagergren/aegis"
 	"github.com/ericlagergren/siv"
+	"github.com/metacubex/ascon"
 	"github.com/metacubex/chacha"
 	"github.com/oasisprotocol/deoxysii"
 	"github.com/sina-ghaderi/rabaead"
@@ -50,6 +51,8 @@ var MethodList = []string{
 	"lea-128-gcm",
 	"lea-192-gcm",
 	"lea-256-gcm",
+	"ascon128",
+	"ascon128a",
 }
 
 func init() {
@@ -127,6 +130,12 @@ func NewMethod(ctx context.Context, methodName string, options C.MethodOptions) 
 	case "lea-256-gcm":
 		m.keySaltLength = 32
 		m.constructor = aeadCipher(lea.NewCipher, cipher.NewGCM)
+	case "ascon128":
+		m.keySaltLength = 16
+		m.constructor = func(key []byte) (cipher.AEAD, error) { return ascon.New(key, ascon.Ascon128) }
+	case "ascon128a":
+		m.keySaltLength = 16
+		m.constructor = func(key []byte) (cipher.AEAD, error) { return ascon.New(key, ascon.Ascon128a) }
 	}
 	if len(options.Key) == m.keySaltLength {
 		m.key = options.Key
