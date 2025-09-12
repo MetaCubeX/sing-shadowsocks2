@@ -1,8 +1,6 @@
 package cipher
 
 import (
-	"context"
-
 	E "github.com/metacubex/sing/common/exceptions"
 )
 
@@ -17,7 +15,7 @@ func RegisterMethod(methods []string, creator MethodCreator) {
 	}
 }
 
-func CreateMethod(ctx context.Context, methodName string, options MethodOptions) (Method, error) {
+func CreateMethod(methodName string, options MethodOptions) (Method, error) {
 	if methodRegistry == nil {
 		methodRegistry = make(map[string]MethodCreator)
 	}
@@ -25,5 +23,5 @@ func CreateMethod(ctx context.Context, methodName string, options MethodOptions)
 	if !ok {
 		return nil, E.New("unknown method: ", methodName)
 	}
-	return creator(ctx, methodName, options)
+	return creator(methodName, options)
 }

@@ -1,8 +1,8 @@
 package cipher
 
 import (
-	"context"
 	"net"
+	"time"
 
 	M "github.com/metacubex/sing/common/metadata"
 	N "github.com/metacubex/sing/common/network"
@@ -18,6 +18,7 @@ type MethodOptions struct {
 	Password string
 	Key      []byte
 	KeyList  [][]byte
+	TimeFunc func() time.Time
 }
 
-type MethodCreator func(ctx context.Context, methodName string, options MethodOptions) (Method, error)
+type MethodCreator func(methodName string, options MethodOptions) (Method, error)

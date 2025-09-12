@@ -1,7 +1,6 @@
 package cipher
 
 import (
-	"context"
 	"net"
 
 	"github.com/metacubex/sing/common"
@@ -14,7 +13,7 @@ import (
 const MethodNone = "none"
 
 func init() {
-	RegisterMethod([]string{MethodNone}, func(ctx context.Context, method string, options MethodOptions) (Method, error) {
+	RegisterMethod([]string{MethodNone}, func(method string, options MethodOptions) (Method, error) {
 		return &noneMethod{}, nil
 	})
 }

@@ -2,7 +2,6 @@ package shadowaead_2022
 
 import (
 	"bytes"
-	"context"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
@@ -23,7 +22,6 @@ import (
 	E "github.com/metacubex/sing/common/exceptions"
 	M "github.com/metacubex/sing/common/metadata"
 	N "github.com/metacubex/sing/common/network"
-	"github.com/metacubex/sing/common/ntp"
 
 	"github.com/metacubex/blake3"
 	"github.com/metacubex/chacha"
@@ -57,9 +55,9 @@ type Method struct {
 	pskHash               []byte
 }
 
-func NewMethod(ctx context.Context, methodName string, options C.MethodOptions) (C.Method, error) {
+func NewMethod(methodName string, options C.MethodOptions) (C.Method, error) {
 	m := &Method{
-		timeFunc: ntp.TimeFuncFromContext(ctx),
+		timeFunc: options.TimeFunc,
 		pskList:  options.KeyList,
 	}
 	if options.Password != "" {

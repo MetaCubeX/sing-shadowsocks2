@@ -1,8 +1,6 @@
 package shadowsocks
 
 import (
-	"context"
-
 	C "github.com/metacubex/sing-shadowsocks2/cipher"
 	_ "github.com/metacubex/sing-shadowsocks2/shadowaead"
 	_ "github.com/metacubex/sing-shadowsocks2/shadowaead_2022"
@@ -14,6 +12,6 @@ type (
 	MethodOptions = C.MethodOptions
 )
 
-func CreateMethod(ctx context.Context, method string, options MethodOptions) (Method, error) {
-	return C.CreateMethod(ctx, method, options)
+func CreateMethod(method string, options MethodOptions) (Method, error) {
+	return C.CreateMethod(method, options)
 }

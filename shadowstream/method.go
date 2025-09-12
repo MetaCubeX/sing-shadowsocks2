@@ -1,7 +1,6 @@
 package shadowstream
 
 import (
-	"context"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/md5"
@@ -46,7 +45,7 @@ type Method struct {
 	key                []byte
 }
 
-func NewMethod(ctx context.Context, methodName string, options C.MethodOptions) (C.Method, error) {
+func NewMethod(methodName string, options C.MethodOptions) (C.Method, error) {
 	m := &Method{}
 	switch methodName {
 	case "aes-128-ctr":

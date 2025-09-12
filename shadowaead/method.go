@@ -1,7 +1,6 @@
 package shadowaead
 
 import (
-	"context"
 	"crypto/aes"
 	"crypto/cipher"
 	"net"
@@ -56,8 +55,8 @@ var MethodList = []string{
 }
 
 func init() {
-	C.RegisterMethod(MethodList, func(ctx context.Context, methodName string, options C.MethodOptions) (C.Method, error) {
-		return NewMethod(ctx, methodName, options)
+	C.RegisterMethod(MethodList, func(methodName string, options C.MethodOptions) (C.Method, error) {
+		return NewMethod(methodName, options)
 	})
 }
 
@@ -67,7 +66,7 @@ type Method struct {
 	key           []byte
 }
 
-func NewMethod(ctx context.Context, methodName string, options C.MethodOptions) (*Method, error) {
+func NewMethod(methodName string, options C.MethodOptions) (*Method, error) {
 	m := &Method{}
 	switch methodName {
 	case "aes-128-gcm":
